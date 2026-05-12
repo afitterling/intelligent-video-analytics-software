@@ -1,0 +1,15 @@
+# sst
+.sst
+.env*
+!.env.example
+
+# node
+node_modules
+dist
+build
+*.log
+.DS_Store
+
+# editor
+.vscode
+.idea

@@ -1,0 +1,20 @@
+{
+  "name": "intelligent-video-analytics",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Intelligent Video Analytics (IVA) - streams video upstream, runs detections, and notifies users",
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "dev": "sst dev",
+    "deploy": "sst deploy",
+    "remove": "sst remove",
+    "shell": "sst shell",
+    "console": "sst console"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "sst": "^3.5.0",
+    "typescript": "^5.7.0"
+  }
+}
