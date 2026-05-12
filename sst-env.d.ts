@@ -6,6 +6,10 @@
 
 declare module "sst" {
   export interface Resource {
+    "AlertCooldown": {
+      "name": string
+      "type": "sst.aws.Dynamo"
+    }
     "AlertRecipients": {
       "type": "sst.sst.Secret"
       "value": string

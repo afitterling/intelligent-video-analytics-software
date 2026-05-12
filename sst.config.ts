@@ -22,6 +22,19 @@ export default $config({
     // --- Storage for clips, thumbnails, and detection artifacts ---
     const mediaBucket = new sst.aws.Bucket("MediaBucket");
 
+    new aws.s3.BucketLifecycleConfigurationV2("MediaBucketLifecycle", {
+      bucket: mediaBucket.name,
+      rules: [
+        {
+          id: "expire-incoming",
+          status: "Enabled",
+          filter: { prefix: "incoming/" },
+          expiration: { days: 14 },
+          abortIncompleteMultipartUpload: { daysAfterInitiation: 1 },
+        },
+      ],
+    });
+
     // --- Detection event log (DynamoDB) ---
     const detectionsTable = new sst.aws.Dynamo("Detections", {
       fields: {
@@ -30,10 +43,23 @@ export default $config({
       },
       primaryIndex: { hashKey: "cameraId", rangeKey: "timestamp" },
       stream: "new-and-old-images",
+      ttl: "expiresAt",
     });
 
     // --- User notification topic ---
     const alertsTopic = new sst.aws.SnsTopic("Alerts");
+
+    // --- Per-camera email cooldown (one alert mail per hour per camera) ---
+    const alertCooldown = new sst.aws.Dynamo("AlertCooldown", {
+      fields: { cameraId: "string" },
+      primaryIndex: { hashKey: "cameraId" },
+      ttl: "expiresAt",
+    });
+
+    // --- Rekognition face collection (so we can detect a *different* person) ---
+    const faceCollection = new aws.rekognition.Collection("FaceCollection", {
+      collectionId: `${$app.name}-${$app.stage}-faces`,
+    });
 
     // --- Email alert channel (SES) ---
     // AWS sends a verification email to this address on first deploy; click the link.
@@ -77,15 +103,24 @@ export default $config({
         alertsTopic,
         videoStream,
         alertRecipients,
+        alertCooldown,
       ],
       timeout: "5 minutes",
       memory: "2048 MB",
       environment: {
         ALERT_SENDER: senderEmail,
+        ALERT_COOLDOWN_SECONDS: "3600",
+        DETECTIONS_RETENTION_DAYS: "90",
+        FACE_COLLECTION_ID: faceCollection.collectionId,
       },
       permissions: [
         {
-          actions: ["rekognition:DetectLabels", "rekognition:DetectFaces"],
+          actions: [
+            "rekognition:DetectLabels",
+            "rekognition:DetectFaces",
+            "rekognition:SearchFacesByImage",
+            "rekognition:IndexFaces",
+          ],
           resources: ["*"],
         },
         {

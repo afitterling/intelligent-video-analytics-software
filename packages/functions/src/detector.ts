@@ -2,6 +2,8 @@ import { Resource } from "sst";
 import {
   RekognitionClient,
   DetectLabelsCommand,
+  SearchFacesByImageCommand,
+  IndexFacesCommand,
   type Label,
 } from "@aws-sdk/client-rekognition";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
@@ -39,6 +41,8 @@ export const handler = async (event: {
   }));
 
   const timestamp = new Date().toISOString();
+  const retentionDays = Number(process.env.DETECTIONS_RETENTION_DAYS ?? "90");
+  const expiresAt = Math.floor(Date.now() / 1000) + retentionDays * 86400;
 
   await ddb.send(
     new PutCommand({
@@ -48,6 +52,7 @@ export const handler = async (event: {
         timestamp,
         imageKey: event.key,
         labels,
+        expiresAt,
       },
     }),
   );
@@ -87,6 +92,14 @@ async function sendEmailWithImage(
     .map((s: string) => s.trim())
     .filter(Boolean);
   if (recipients.length === 0) return;
+
+  const faceId = await identifySubject(event, triggered);
+  if (!(await acquireCooldown(event.cameraId, faceId))) {
+    console.log(
+      `cooldown active for ${event.cameraId} (faceId=${faceId}), skipping email`,
+    );
+    return;
+  }
 
   const obj = await s3.send(
     new GetObjectCommand({ Bucket: event.bucket, Key: event.key }),
@@ -134,4 +147,87 @@ async function sendEmailWithImage(
       Content: { Raw: { Data: mime } },
     }),
   );
+}
+
+// Acquire the email-cooldown slot for a (cameraId, subject) pair.
+// Send is allowed if: no prior row, prior row expired, OR the subject differs
+// from the one we last alerted on (e.g. a different person on the same camera).
+async function acquireCooldown(
+  cameraId: string,
+  faceId: string,
+): Promise<boolean> {
+  const nowSec = Math.floor(Date.now() / 1000);
+  const cooldownSec = Number(process.env.ALERT_COOLDOWN_SECONDS ?? "3600");
+  try {
+    await ddb.send(
+      new PutCommand({
+        TableName: Resource.AlertCooldown.name,
+        Item: {
+          cameraId,
+          expiresAt: nowSec + cooldownSec,
+          lastFaceId: faceId,
+        },
+        ConditionExpression:
+          "attribute_not_exists(cameraId) OR expiresAt < :now OR lastFaceId <> :face",
+        ExpressionAttributeValues: { ":now": nowSec, ":face": faceId },
+      }),
+    );
+    return true;
+  } catch (err: unknown) {
+    if (
+      err &&
+      typeof err === "object" &&
+      "name" in err &&
+      err.name === "ConditionalCheckFailedException"
+    ) {
+      return false;
+    }
+    throw err;
+  }
+}
+
+// Identify the alert subject so the cooldown can distinguish "same person again"
+// from "different person". For Person alerts we use the Rekognition face id; for
+// non-Person alerts we fall back to the trigger label so categories don't share
+// a cooldown slot.
+async function identifySubject(
+  event: { bucket: string; key: string },
+  triggered: { name?: string }[],
+): Promise<string> {
+  const hasPerson = triggered.some((l) => l.name === "Person");
+  if (!hasPerson) {
+    const first = triggered.find((l) => l.name)?.name ?? "unknown";
+    return `label:${first}`;
+  }
+
+  const collectionId = process.env.FACE_COLLECTION_ID!;
+  const image = { S3Object: { Bucket: event.bucket, Name: event.key } };
+
+  try {
+    const search = await rekog.send(
+      new SearchFacesByImageCommand({
+        CollectionId: collectionId,
+        Image: image,
+        FaceMatchThreshold: 80,
+        MaxFaces: 1,
+      }),
+    );
+    const match = search.FaceMatches?.[0]?.Face?.FaceId;
+    if (match) return match;
+
+    const indexed = await rekog.send(
+      new IndexFacesCommand({
+        CollectionId: collectionId,
+        Image: image,
+        MaxFaces: 1,
+        QualityFilter: "AUTO",
+        DetectionAttributes: [],
+      }),
+    );
+    return indexed.FaceRecords?.[0]?.Face?.FaceId ?? "face:unknown";
+  } catch (err: unknown) {
+    // SearchFacesByImage throws InvalidParameterException when no face is found.
+    console.log("face identify failed, falling back to unknown:", err);
+    return "face:unknown";
+  }
 }
