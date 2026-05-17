@@ -9,21 +9,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const email = String(form.get("email") ?? "");
   const password = String(form.get("password") ?? "");
   try {
-    const r = await api<{ accessToken: string; idToken: string; refreshToken: string; expiresIn: number }>(
+    const r = await api<{ refreshToken: string }>(
       "/auth/login",
       { method: "POST", body: { email, password } },
     );
     const session = await getSession(request);
-    session.set("data", {
-      accessToken: r.accessToken,
-      idToken: r.idToken,
-      refreshToken: r.refreshToken,
-      email,
-      expiresAt: Date.now() + r.expiresIn * 1000,
-    });
+    session.set("data", { refreshToken: r.refreshToken, email });
     return redirect("/devices", { headers: { "Set-Cookie": await commitSession(session) } });
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "login failed" };
+    console.error("login action failed:", err);
+    const message =
+      err instanceof ApiError ? err.message
+      : err instanceof Error ? err.message
+      : String(err);
+    return { error: message };
   }
 };
 

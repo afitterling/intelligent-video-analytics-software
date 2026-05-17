@@ -44,10 +44,8 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
     catch { json = { error: text.slice(0, 300) }; }
   }
   if (!res.ok) {
-    const message =
-      (json as { error?: string }).error
-      ?? (json as { message?: string }).message
-      ?? `${res.status} ${res.statusText}`;
+    const j = json as { error?: string; message?: string };
+    const message = j.message ?? j.error ?? `${res.status} ${res.statusText}`;
     throw new ApiError(res.status, message, json);
   }
   return json as T;

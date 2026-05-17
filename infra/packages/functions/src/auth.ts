@@ -12,7 +12,7 @@ import { ok, fail, parseJson, type Handler } from "./shared/http.js";
 
 const cognito = new CognitoIdentityProviderClient({});
 
-const clientId = () => Resource.UserPoolWebClient.id;
+const clientId = () => Resource.WebClient.id;
 
 const safeError = (err: unknown) => {
   if (err && typeof err === "object" && "name" in err) {
