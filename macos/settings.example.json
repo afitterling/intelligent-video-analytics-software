@@ -1,0 +1,8 @@
+{
+  "apiUrl": "https://CHANGE-ME.execute-api.eu-west-1.amazonaws.com",
+  "region": "eu-west-1",
+
+  "//": "userPoolId and userPoolClientId are optional — not used today (auth is proxied through the API), reserved for a future direct-Cognito flow.",
+  "userPoolId": "",
+  "userPoolClientId": ""
+}

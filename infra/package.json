@@ -1,0 +1,20 @@
+{
+  "name": "iva-infra",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "dev": "sst dev",
+    "deploy": "sst deploy",
+    "remove": "sst remove",
+    "shell": "sst shell",
+    "console": "sst console",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "sst": "^3.5.0",
+    "typescript": "^5.7.0"
+  }
+}

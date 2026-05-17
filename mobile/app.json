@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "IVA",
+    "slug": "iva-mobile",
+    "scheme": "iva",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "ios": { "supportsTablet": true, "bundleIdentifier": "tech.sp33c.iva" },
+    "android": { "package": "tech.sp33c.iva" },
+    "plugins": ["expo-router", "expo-secure-store"],
+    "experiments": { "typedRoutes": true },
+    "extra": {
+      "apiUrl": "https://CHANGE-ME.execute-api.eu-west-1.amazonaws.com"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key>
+  <string>tech.sp33c.iva</string>
+  <key>CFBundleName</key>
+  <string>IVA</string>
+  <key>CFBundleDisplayName</key>
+  <string>IVA Camera Agent</string>
+  <key>CFBundleVersion</key>
+  <string>1</string>
+  <key>CFBundleShortVersionString</key>
+  <string>0.1.0</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>13.0</string>
+  <key>NSCameraUsageDescription</key>
+  <string>IVA needs camera access to stream the selected camera to your Kinesis Video Stream.</string>
+  <key>NSAppleEventsUsageDescription</key>
+  <string>IVA spawns gst-launch-1.0 to push frames to AWS.</string>
+  <key>LSUIElement</key>
+  <false/>
+</dict>
+</plist>

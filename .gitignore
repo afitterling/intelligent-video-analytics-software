@@ -3,12 +3,19 @@
 .env*
 !.env.example
 
-# node
+# node / remix / expo
 node_modules
 dist
 build
+.expo
+.expo-shared
 *.log
 .DS_Store
+
+# swift
+.build
+.swiftpm
+DerivedData
 
 # editor
 .vscode

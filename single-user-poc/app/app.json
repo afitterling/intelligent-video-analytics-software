@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "IVA Camera",
+    "slug": "iva-camera",
+    "scheme": "ivacamera",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "tech.sp33c.iva.camera",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSCameraUsageDescription": "IVA needs the camera to stream frames to the backend for analysis.",
+        "NSMicrophoneUsageDescription": "IVA uses silent background audio to keep streaming when the screen is dimmed.",
+        "UIBackgroundModes": ["audio", "fetch", "remote-notification", "processing"],
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "entitlements": {
+        "aps-environment": "production"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow IVA to access your camera.",
+          "microphonePermission": "Allow IVA to access your microphone."
+        }
+      ],
+      "expo-notifications",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
