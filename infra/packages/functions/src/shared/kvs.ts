@@ -4,9 +4,11 @@ import {
   DeleteStreamCommand,
   DescribeStreamCommand,
   GetDataEndpointCommand,
-  GetHLSStreamingSessionURLCommand,
 } from "@aws-sdk/client-kinesis-video";
-import { KinesisVideoArchivedMediaClient } from "@aws-sdk/client-kinesis-video-archived-media";
+import {
+  KinesisVideoArchivedMediaClient,
+  GetHLSStreamingSessionURLCommand,
+} from "@aws-sdk/client-kinesis-video-archived-media";
 import { STSClient, GetFederationTokenCommand } from "@aws-sdk/client-sts";
 
 const kvs = new KinesisVideoClient({});
@@ -89,13 +91,12 @@ export const hlsUrlFor = async (streamName: string, expiresSeconds = 300) => {
     new GetDataEndpointCommand({ StreamName: streamName, APIName: "GET_HLS_STREAMING_SESSION_URL" }),
   );
   const archived = new KinesisVideoArchivedMediaClient({ endpoint: ep.DataEndpoint });
-  // The archived client speaks the same HLS command shape.
   const r = await archived.send(
     new GetHLSStreamingSessionURLCommand({
       StreamName: streamName,
       PlaybackMode: "LIVE",
       Expires: expiresSeconds,
-    }) as never,
+    }),
   );
-  return (r as unknown as { HLSStreamingSessionURL: string }).HLSStreamingSessionURL;
+  return r.HLSStreamingSessionURL!;
 };
