@@ -6,6 +6,51 @@
 
 declare module "sst" {
   export interface Resource {
+    "AlertCooldown": {
+      "name": string
+      "type": "sst.aws.Dynamo"
+    }
+    "Api": {
+      "type": "sst.aws.ApiGatewayV2"
+      "url": string
+    }
+    "Detections": {
+      "name": string
+      "type": "sst.aws.Dynamo"
+    }
+    "Detector": {
+      "name": string
+      "type": "sst.aws.Function"
+    }
+    "Devices": {
+      "name": string
+      "type": "sst.aws.Dynamo"
+    }
+    "MediaBucket": {
+      "name": string
+      "type": "sst.aws.Bucket"
+    }
+    "RegistrationTokens": {
+      "name": string
+      "type": "sst.aws.Dynamo"
+    }
+    "Rules": {
+      "name": string
+      "type": "sst.aws.Dynamo"
+    }
+    "SessionSecret": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "UserPool": {
+      "id": string
+      "type": "sst.aws.CognitoUserPool"
+    }
+    "WebClient": {
+      "id": string
+      "secret": string
+      "type": "sst.aws.CognitoUserPoolClient"
+    }
   }
 }
 /// <reference path="sst-env.d.ts" />
