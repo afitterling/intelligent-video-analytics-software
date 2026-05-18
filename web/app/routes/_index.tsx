@@ -10,21 +10,32 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export default function Index() {
   const { authed } = useLoaderData<typeof loader>();
   return (
-    <div>
-      <h1>Intelligent Video Analytics</h1>
-      <p>
-        Sign in to register cameras, push live video to your private Kinesis
-        Video Stream, and set up AI alerts (people, vehicles, fire, …).
-      </p>
-      {authed ? (
-        <p>
-          <Link to="/devices">Go to your devices →</Link>
+    <section className="hero">
+      <div>
+        <p className="eyebrow mb-3">Private real-time monitoring</p>
+        <h1 className="hero-title fw-black mb-4">Intelligent Video Analytics</h1>
+        <p className="hero-copy mb-4">
+          Register cameras, stream securely to your private Kinesis Video Stream,
+          and trigger AI alerts for people, vehicles, fire, packages, and more.
         </p>
-      ) : (
-        <p>
-          <Link to="/signup">Create an account</Link> or <Link to="/login">sign in</Link>.
-        </p>
-      )}
-    </div>
+        <div className="d-flex flex-wrap gap-2">
+          {authed ? (
+            <Link to="/devices" className="btn btn-primary btn-lg">Open devices</Link>
+          ) : (
+            <>
+              <Link to="/signup" className="btn btn-primary btn-lg">Create an account</Link>
+              <Link to="/login" className="btn btn-outline-primary btn-lg">Sign in</Link>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="hero-visual" aria-hidden="true">
+        <div className="scan-line" />
+        <div className="video-label">
+          <span className="badge text-bg-success">Live detection</span>
+          <span className="small">Person 96% · Package 88%</span>
+        </div>
+      </div>
+    </section>
   );
 }

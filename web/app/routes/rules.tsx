@@ -69,76 +69,99 @@ export default function Rules() {
   const fetcher = useFetcher<typeof action>();
   return (
     <div>
-      <h2>Detection rules</h2>
-      <p className="muted">When a rule matches, the detector fires its action (with a 1-hour per-device cooldown).</p>
+      <div className="section-header">
+        <div>
+          <p className="eyebrow mb-2">Automation</p>
+          <h1 className="h2 mb-1">Detection rules</h1>
+          <p className="muted mb-0">When a rule matches, the detector fires its action with a 1-hour per-device cooldown.</p>
+        </div>
+      </div>
 
-      <h3>Existing rules</h3>
       {rules.length === 0 ? (
-        <p className="muted">No rules yet.</p>
+        <div className="empty-state mb-4">
+          <h2 className="h5">No rules yet</h2>
+          <p className="muted mb-0">Create a rule below to start alerting from detections.</p>
+        </div>
       ) : (
-        <table>
+        <div className="panel table-responsive mb-4">
+        <table className="table table-hover align-middle">
           <thead><tr><th>Name</th><th>Device</th><th>Detect</th><th>Action</th><th>Enabled</th><th></th></tr></thead>
           <tbody>
             {rules.map((r) => (
               <tr key={r.ruleId}>
-                <td>{r.name}</td>
+                <td className="fw-semibold">{r.name}</td>
                 <td>{r.deviceId === "*" ? "all" : (devices.find(d => d.deviceId === r.deviceId)?.name ?? r.deviceId)}</td>
-                <td>{r.detect.join(", ")} ≥ {r.minConfidence}%</td>
+                <td>{r.detect.join(", ")} &gt;= {r.minConfidence}%</td>
                 <td>{r.action.type}{r.action.type === "email" ? `: ${r.action.to}` : r.action.type === "webhook" ? `: ${r.action.url}` : ""}</td>
                 <td>
-                  <fetcher.Form method="post" style={{ all: "unset" }}>
+                  <fetcher.Form method="post" className="m-0">
                     <input type="hidden" name="intent" value="toggle" />
                     <input type="hidden" name="ruleId" value={r.ruleId} />
                     <input type="hidden" name="enabled" value={r.enabled ? "false" : "true"} />
-                    <button type="submit">{r.enabled ? "on" : "off"}</button>
+                    <button type="submit" className={`btn btn-sm ${r.enabled ? "btn-success" : "btn-outline-secondary"}`}>
+                      {r.enabled ? "On" : "Off"}
+                    </button>
                   </fetcher.Form>
                 </td>
-                <td>
-                  <fetcher.Form method="post" style={{ all: "unset" }}>
+                <td className="text-end">
+                  <fetcher.Form method="post" className="m-0">
                     <input type="hidden" name="intent" value="delete" />
                     <input type="hidden" name="ruleId" value={r.ruleId} />
-                    <button type="submit" className="danger">delete</button>
+                    <button type="submit" className="btn btn-sm btn-outline-danger">Delete</button>
                   </fetcher.Form>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        </div>
       )}
 
-      <h3>New rule</h3>
-      <Form method="post">
-        <input name="name" placeholder="Front door — anyone" required />
-        <label>
-          Device
-          <select name="deviceId" defaultValue="*">
+      <div className="panel p-4 p-md-5">
+      <h2 className="h4 mb-4">New rule</h2>
+      <Form method="post" className="row g-3">
+        <div className="col-md-6">
+          <label className="form-label" htmlFor="name">Rule name</label>
+          <input id="name" className="form-control" name="name" placeholder="Front door - anyone" required />
+        </div>
+        <div className="col-md-6">
+          <label className="form-label" htmlFor="deviceId">Device</label>
+          <select id="deviceId" className="form-select" name="deviceId" defaultValue="*">
             <option value="*">All devices</option>
             {devices.map((d) => <option key={d.deviceId} value={d.deviceId}>{d.name}</option>)}
           </select>
-        </label>
-        <fieldset>
-          <legend>Detect</legend>
+        </div>
+        <fieldset className="col-12">
+          <legend className="form-label">Detect</legend>
+          <div className="label-grid">
           {LABELS.map((l) => (
-            <label key={l} style={{ display: "inline-block", marginRight: 8 }}>
-              <input type="checkbox" name="detect" value={l} defaultChecked={l === "Person"} /> {l}
+            <label key={l} className="label-chip">
+              <input className="form-check-input m-0" type="checkbox" name="detect" value={l} defaultChecked={l === "Person"} /> {l}
             </label>
           ))}
+          </div>
         </fieldset>
-        <label>
-          Min confidence (%)
-          <input name="minConfidence" type="number" defaultValue={75} min={50} max={99} />
-        </label>
-        <label>
-          Action
-          <select name="actionType" defaultValue="email">
+        <div className="col-md-4">
+          <label className="form-label" htmlFor="minConfidence">Min confidence (%)</label>
+          <input id="minConfidence" className="form-control" name="minConfidence" type="number" defaultValue={75} min={50} max={99} />
+        </div>
+        <div className="col-md-4">
+          <label className="form-label" htmlFor="actionType">Action</label>
+          <select id="actionType" className="form-select" name="actionType" defaultValue="email">
             <option value="email">Email</option>
             <option value="webhook">Webhook (POST)</option>
             <option value="log">Log only</option>
           </select>
-        </label>
-        <input name="target" placeholder={`email or URL (e.g. ${email})`} />
-        <button type="submit">Create rule</button>
+        </div>
+        <div className="col-md-4">
+          <label className="form-label" htmlFor="target">Target</label>
+          <input id="target" className="form-control" name="target" placeholder={`email or URL (e.g. ${email})`} />
+        </div>
+        <div className="col-12">
+          <button className="btn btn-primary" type="submit">Create rule</button>
+        </div>
       </Form>
+      </div>
     </div>
   );
 }

@@ -15,23 +15,33 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 export default function Forgot() {
   const data = useActionData<typeof action>();
-  if (data?.sent) {
+  if (data && "sent" in data) {
     return (
-      <div>
-        <h2>Code sent</h2>
-        <p>Check your email for the reset code, then continue.</p>
-        <p><Link to={`/reset?email=${encodeURIComponent(data.email)}`}>Reset password →</Link></p>
+      <div className="auth-layout">
+        <div className="panel auth-card p-4 p-md-5 text-center">
+          <span className="badge text-bg-success mb-3">Sent</span>
+          <h1 className="h2 mb-3">Code sent</h1>
+          <p className="muted">Check your email for the reset code, then continue.</p>
+          <Link to={`/reset?email=${encodeURIComponent(data.email)}`} className="btn btn-primary">Reset password</Link>
+        </div>
       </div>
     );
   }
   return (
-    <div>
-      <h2>Forgot password</h2>
-      <Form method="post">
-        <input name="email" type="email" placeholder="email" required />
-        <button type="submit">Send reset code</button>
-        {data?.error && <p className="danger">{data.error}</p>}
+    <div className="auth-layout">
+      <div className="panel auth-card p-4 p-md-5">
+      <p className="eyebrow mb-2">Account recovery</p>
+      <h1 className="h2 mb-3">Forgot password</h1>
+      <p className="muted">Enter your email and we’ll send a reset code.</p>
+      <Form method="post" className="d-grid gap-3">
+        <div>
+          <label className="form-label" htmlFor="email">Email</label>
+          <input id="email" className="form-control form-control-lg" name="email" type="email" placeholder="you@example.com" required />
+        </div>
+        <button className="btn btn-primary btn-lg" type="submit">Send reset code</button>
+        {data && "error" in data && <div className="alert alert-danger mb-0">{data.error}</div>}
       </Form>
+      </div>
     </div>
   );
 }

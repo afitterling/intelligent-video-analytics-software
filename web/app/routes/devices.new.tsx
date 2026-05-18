@@ -31,29 +31,35 @@ export default function NewDevice() {
   if (data && "registrationToken" in data) {
     const expires = new Date(data.registrationTokenExpiresAt * 1000);
     return (
-      <div>
-        <h2>{data.device.name} registered</h2>
-        <p>
+      <div className="panel p-4 p-md-5">
+        <span className="badge text-bg-success mb-3">Registered</span>
+        <h1 className="h2 mb-3">{data.device.name} registered</h1>
+        <p className="muted">
           Paste this token into the macOS agent or mobile app on the device.
           It expires {expires.toLocaleString()} and won't be shown again.
         </p>
-        <pre style={{ background: "#0001", padding: 12, overflow: "auto" }}>
+        <pre className="code-block">
           <code>{data.registrationToken}</code>
         </pre>
-        <p>
-          <Link to={`/devices/${data.device.deviceId}`}>Open device →</Link>
-        </p>
+        <Link to={`/devices/${data.device.deviceId}`} className="btn btn-primary">Open device</Link>
       </div>
     );
   }
   return (
-    <div>
-      <h2>Register a device</h2>
-      <Form method="post">
-        <input name="name" placeholder="Front door cam" required />
-        <input name="location" placeholder="(optional) Entrance" />
-        <button type="submit">Create</button>
-        {data && "error" in data && <p className="danger">{data.error}</p>}
+    <div className="panel form-card p-4 p-md-5">
+      <p className="eyebrow mb-2">New camera</p>
+      <h1 className="h2 mb-4">Register a device</h1>
+      <Form method="post" className="d-grid gap-3">
+        <div>
+          <label className="form-label" htmlFor="name">Device name</label>
+          <input id="name" className="form-control form-control-lg" name="name" placeholder="Front door cam" required />
+        </div>
+        <div>
+          <label className="form-label" htmlFor="location">Location</label>
+          <input id="location" className="form-control form-control-lg" name="location" placeholder="Entrance" />
+        </div>
+        <button className="btn btn-primary btn-lg" type="submit">Create</button>
+        {data && "error" in data && <div className="alert alert-danger mb-0">{data.error}</div>}
       </Form>
     </div>
   );

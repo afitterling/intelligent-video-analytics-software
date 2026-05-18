@@ -23,24 +23,39 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function Reset() {
   const { email } = useLoaderData<typeof loader>();
   const data = useActionData<typeof action>();
-  if (data?.done) {
+  if (data && "done" in data) {
     return (
-      <div>
-        <h2>Password updated</h2>
-        <p><Link to="/login">Sign in →</Link></p>
+      <div className="auth-layout">
+        <div className="panel auth-card p-4 p-md-5 text-center">
+          <span className="badge text-bg-success mb-3">Updated</span>
+          <h1 className="h2 mb-3">Password updated</h1>
+          <Link to="/login" className="btn btn-primary">Sign in</Link>
+        </div>
       </div>
     );
   }
   return (
-    <div>
-      <h2>Reset password</h2>
-      <Form method="post">
-        <input name="email" type="email" defaultValue={email} required />
-        <input name="code" placeholder="code from email" required />
-        <input name="password" type="password" placeholder="new password" required />
-        <button type="submit">Reset</button>
-        {data?.error && <p className="danger">{data.error}</p>}
+    <div className="auth-layout">
+      <div className="panel auth-card p-4 p-md-5">
+      <p className="eyebrow mb-2">Account recovery</p>
+      <h1 className="h2 mb-4">Reset password</h1>
+      <Form method="post" className="d-grid gap-3">
+        <div>
+          <label className="form-label" htmlFor="email">Email</label>
+          <input id="email" className="form-control form-control-lg" name="email" type="email" defaultValue={email} required />
+        </div>
+        <div>
+          <label className="form-label" htmlFor="code">Reset code</label>
+          <input id="code" className="form-control form-control-lg" name="code" placeholder="Code from email" required />
+        </div>
+        <div>
+          <label className="form-label" htmlFor="password">New password</label>
+          <input id="password" className="form-control form-control-lg" name="password" type="password" placeholder="New password" required />
+        </div>
+        <button className="btn btn-primary btn-lg" type="submit">Reset</button>
+        {data && "error" in data && <div className="alert alert-danger mb-0">{data.error}</div>}
       </Form>
+      </div>
     </div>
   );
 }

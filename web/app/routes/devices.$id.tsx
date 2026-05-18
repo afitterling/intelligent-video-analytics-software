@@ -55,38 +55,61 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 
 export default function DeviceDetail() {
   const { device } = useLoaderData<typeof loader>();
-  const action = useActionData<typeof action>();
+  const actionData = useActionData<typeof action>();
   return (
     <div>
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <h2>{device.name}</h2>
-        <Link to={`/devices/${device.deviceId}/viewer`}>view live →</Link>
+      <div className="section-header">
+        <div>
+          <p className="eyebrow mb-2">Device</p>
+          <h1 className="h2 mb-1">{device.name}</h1>
+          <div className="d-flex flex-wrap gap-2 align-items-center muted">
+            <span>Status: <span className="status-badge">{device.status}</span></span>
+            <span>Stream: <code>{device.streamName}</code></span>
+          </div>
+        </div>
+        <Link to={`/devices/${device.deviceId}/viewer`} className="btn btn-primary">View live</Link>
       </div>
-      <p className="muted">Stream: <code>{device.streamName}</code></p>
-      <p className="muted">Status: <span className="pill">{device.status}</span></p>
 
-      <h3>Edit</h3>
-      <Form method="post">
+      <div className="row g-4">
+        <div className="col-lg-7">
+          <div className="panel p-4">
+      <h2 className="h4 mb-3">Edit details</h2>
+      <Form method="post" className="d-grid gap-3">
         <input type="hidden" name="intent" value="save" />
-        <input name="name" defaultValue={device.name} required />
-        <input name="location" defaultValue={device.location ?? ""} placeholder="location" />
-        <button type="submit">Save</button>
+        <div>
+          <label className="form-label" htmlFor="name">Name</label>
+          <input id="name" className="form-control" name="name" defaultValue={device.name} required />
+        </div>
+        <div>
+          <label className="form-label" htmlFor="location">Location</label>
+          <input id="location" className="form-control" name="location" defaultValue={device.location ?? ""} placeholder="Entrance" />
+        </div>
+        <button className="btn btn-primary" type="submit">Save</button>
       </Form>
-      {action && "saved" in action && <p>Saved.</p>}
+      {actionData && "saved" in actionData && <div className="alert alert-success mt-3 mb-0">Saved.</div>}
+          </div>
+        </div>
 
-      <h3>Registration token</h3>
-      <p>Rotate to revoke any existing agent and get a new token to paste into a fresh device.</p>
-      <Form method="post">
+        <div className="col-lg-5">
+          <div className="panel p-4">
+      <h2 className="h4 mb-3">Registration token</h2>
+      <p className="muted">Rotate to revoke any existing agent and get a new token to paste into a fresh device.</p>
+      <Form method="post" className="mb-3">
         <input type="hidden" name="intent" value="rotate" />
-        <button type="submit">Rotate registration token</button>
+        <button className="btn btn-outline-primary" type="submit">Rotate registration token</button>
       </Form>
-      {action && "rotated" in action && (
-        <pre style={{ background: "#0001", padding: 12, overflow: "auto" }}>
-          <code>{action.rotated.registrationToken}</code>
+      {actionData && "rotated" in actionData && (
+        <pre className="code-block mb-0">
+          <code>{actionData.rotated.registrationToken}</code>
         </pre>
       )}
+          </div>
+        </div>
+      </div>
 
-      <h3 className="danger">Danger</h3>
+      <div className="panel p-4 mt-4 border-danger-subtle">
+      <h2 className="h4 danger mb-2">Danger zone</h2>
+      <p className="muted">Deleting this device removes its Kinesis stream and data.</p>
       <Form
         method="post"
         onSubmit={(e) => {
@@ -96,9 +119,10 @@ export default function DeviceDetail() {
         }}
       >
         <input type="hidden" name="intent" value="delete" />
-        <button type="submit" className="danger">Delete device</button>
+        <button type="submit" className="btn btn-outline-danger">Delete device</button>
       </Form>
-      {action && "error" in action && <p className="danger">{action.error}</p>}
+      {actionData && "error" in actionData && <div className="alert alert-danger mt-3 mb-0">{actionData.error}</div>}
+      </div>
     </div>
   );
 }

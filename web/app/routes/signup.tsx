@@ -30,38 +30,58 @@ export default function Signup() {
   const data = useActionData<typeof action>();
   if (data?.step === "done") {
     return (
-      <div>
-        <h2>Account confirmed</h2>
-        <p><Link to="/login">Sign in →</Link></p>
+      <div className="auth-layout">
+        <div className="panel auth-card p-4 p-md-5 text-center">
+          <span className="badge text-bg-success mb-3">Confirmed</span>
+          <h1 className="h2 mb-3">Account confirmed</h1>
+          <Link to="/login" className="btn btn-primary">Sign in</Link>
+        </div>
       </div>
     );
   }
-  if (data?.step === "confirm") {
+  if (data?.step === "confirm" && "email" in data) {
     return (
-      <div>
-        <h2>Confirm your email</h2>
-        <p>We sent a code to {data.email}. Enter it below.</p>
-        <Form method="post">
+      <div className="auth-layout">
+        <div className="panel auth-card p-4 p-md-5">
+        <p className="eyebrow mb-2">One more step</p>
+        <h1 className="h2 mb-3">Confirm your email</h1>
+        <p className="muted">We sent a code to {data.email}. Enter it below.</p>
+        <Form method="post" className="d-grid gap-3">
           <input type="hidden" name="step" value="confirm" />
           <input type="hidden" name="email" value={data.email} />
-          <input name="code" placeholder="confirmation code" required />
-          <button type="submit">Confirm</button>
-          {data?.error && <p className="danger">{data.error}</p>}
+          <div>
+            <label className="form-label" htmlFor="code">Confirmation code</label>
+            <input id="code" className="form-control form-control-lg" name="code" placeholder="123456" required />
+          </div>
+          <button className="btn btn-primary btn-lg" type="submit">Confirm</button>
+          {data && "error" in data && typeof data.error === "string" && (
+            <div className="alert alert-danger mb-0">{data.error}</div>
+          )}
         </Form>
+        </div>
       </div>
     );
   }
   return (
-    <div>
-      <h2>Create your account</h2>
-      <Form method="post">
+    <div className="auth-layout">
+      <div className="panel auth-card p-4 p-md-5">
+      <p className="eyebrow mb-2">Start monitoring</p>
+      <h1 className="h2 mb-4">Create your account</h1>
+      <Form method="post" className="d-grid gap-3">
         <input type="hidden" name="step" value="signup" />
-        <input name="email" type="email" placeholder="email" required />
-        <input name="password" type="password" placeholder="password (10+ chars, mixed case, digit)" required />
-        <button type="submit">Sign up</button>
-        {data?.error && <p className="danger">{data.error}</p>}
+        <div>
+          <label className="form-label" htmlFor="email">Email</label>
+          <input id="email" className="form-control form-control-lg" name="email" type="email" placeholder="you@example.com" required />
+        </div>
+        <div>
+          <label className="form-label" htmlFor="password">Password</label>
+          <input id="password" className="form-control form-control-lg" name="password" type="password" placeholder="10+ chars, mixed case, digit" required />
+        </div>
+        <button className="btn btn-primary btn-lg" type="submit">Sign up</button>
+        {data && "error" in data && <div className="alert alert-danger mb-0">{data.error}</div>}
       </Form>
-      <p><Link to="/login">Already have an account? Sign in</Link></p>
+      <p className="small mt-4 mb-0"><Link to="/login">Already have an account? Sign in</Link></p>
+      </div>
     </div>
   );
 }

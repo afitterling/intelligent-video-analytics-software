@@ -50,12 +50,26 @@ export default function Viewer() {
     return () => { hls?.destroy(); };
   }, [url]);
 
-  if (error) return <div><h2>Viewer</h2><p className="danger">{error}</p></div>;
+  if (error) {
+    return (
+      <div className="panel p-4">
+        <h1 className="h2">Viewer</h1>
+        <div className="alert alert-danger mb-0">{error}</div>
+      </div>
+    );
+  }
   return (
     <div>
-      <h2>Live view</h2>
-      <p className="muted">{status}</p>
-      <video ref={videoRef} controls muted style={{ width: "100%", maxWidth: 1000, background: "#000" }} />
+      <div className="section-header">
+        <div>
+          <p className="eyebrow mb-2">Stream</p>
+          <h1 className="h2 mb-0">Live view</h1>
+        </div>
+        <span className="status-badge">{status}</span>
+      </div>
+      <div className="viewer-frame">
+        <video ref={videoRef} controls muted />
+      </div>
     </div>
   );
 }

@@ -29,18 +29,27 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function Login() {
   const data = useActionData<typeof action>();
   return (
-    <div>
-      <h2>Sign in</h2>
-      <Form method="post">
-        <input name="email" type="email" placeholder="email" required />
-        <input name="password" type="password" placeholder="password" required />
-        <button type="submit">Sign in</button>
-        {data?.error && <p className="danger">{data.error}</p>}
+    <div className="auth-layout">
+      <div className="panel auth-card p-4 p-md-5">
+        <p className="eyebrow mb-2">Welcome back</p>
+        <h1 className="h2 mb-4">Sign in</h1>
+      <Form method="post" className="d-grid gap-3">
+        <div>
+          <label className="form-label" htmlFor="email">Email</label>
+          <input id="email" className="form-control form-control-lg" name="email" type="email" placeholder="you@example.com" required />
+        </div>
+        <div>
+          <label className="form-label" htmlFor="password">Password</label>
+          <input id="password" className="form-control form-control-lg" name="password" type="password" placeholder="Your password" required />
+        </div>
+        <button className="btn btn-primary btn-lg" type="submit">Sign in</button>
+        {data?.error && <div className="alert alert-danger mb-0">{data.error}</div>}
       </Form>
-      <p>
-        <Link to="/forgot">Forgot password?</Link> ·{" "}
+      <div className="d-flex justify-content-between gap-3 mt-4 small">
+        <Link to="/forgot">Forgot password?</Link>
         <Link to="/signup">Create account</Link>
-      </p>
+      </div>
+      </div>
     </div>
   );
 }
