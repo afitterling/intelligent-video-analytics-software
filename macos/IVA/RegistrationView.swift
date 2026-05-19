@@ -33,8 +33,9 @@ struct RegistrationView: View {
                 }
 
                 Text("Registration token").font(.caption)
-                SecureField("paste here", text: $token)
+                TextField("paste here", text: $token)
                     .textFieldStyle(.roundedBorder)
+                    .autocorrectionDisabled(true)
             }
 
             HStack {
