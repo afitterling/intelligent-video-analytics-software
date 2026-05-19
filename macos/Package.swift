@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "IVA",
-    platforms: [.macOS(.v13)],
+    platforms: [.macOS(.v14)],
     products: [
         .executable(name: "IVA", targets: ["IVA"]),
         .executable(name: "iva-agent", targets: ["IVAAgent"]),

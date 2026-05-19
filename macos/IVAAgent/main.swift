@@ -121,8 +121,33 @@ func runOnce(streamName: String, region: String, credsPath: URL, cameraUid: Stri
         p.executableURL = URL(fileURLWithPath: "/usr/local/bin/gst-launch-1.0")
     }
     p.arguments = pipeline
+    p.environment = gstEnvironment()
     try p.run()
     p.waitUntilExit()
+}
+
+func gstEnvironment() -> [String: String] {
+    // launchd-spawned agents don't inherit a shell, so GST_PLUGIN_PATH must be
+    // set explicitly for kvssink to be discoverable.
+    var env = ProcessInfo.processInfo.environment
+    let home = env["HOME"] ?? NSHomeDirectory()
+    let extraPaths = [
+        "\(home)/Library/GStreamer/1.0/plugins",
+        "/opt/homebrew/lib/gstreamer-1.0",
+        "/usr/local/lib/gstreamer-1.0",
+    ].joined(separator: ":")
+    if let existing = env["GST_PLUGIN_PATH"], !existing.isEmpty {
+        env["GST_PLUGIN_PATH"] = "\(existing):\(extraPaths)"
+    } else {
+        env["GST_PLUGIN_PATH"] = extraPaths
+    }
+    let pathExtras = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+    if let existing = env["PATH"], !existing.isEmpty {
+        env["PATH"] = "\(existing):\(pathExtras)"
+    } else {
+        env["PATH"] = pathExtras
+    }
+    return env
 }
 
 await run()

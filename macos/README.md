@@ -16,19 +16,149 @@ It also installs a `launchd` agent so the streamer survives logout/reboot.
 
 ## Prerequisites
 
-Install GStreamer + the AWS KVS producer SDK plugin once on the device:
+### 1. GStreamer runtime
 
 ```sh
 brew install gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad \
              gst-plugins-ugly gst-libav
-
-# kvssink (build from source — there's no Homebrew formula). The official
-# instructions live at:
-# https://github.com/awslabs/amazon-kinesis-video-streams-producer-sdk-cpp
-# After build, copy libgstkvssink.dylib into ~/Library/GStreamer/1.0/plugins/.
 ```
 
-Verify with `gst-inspect-1.0 kvssink` — should print plugin metadata.
+### 2. Build deps for kvssink
+
+`kvssink` has no Homebrew formula — it must be built from source. These are
+the build-time deps:
+
+```sh
+brew install cmake pkgconf openssl@3 log4cplus
+```
+
+Notes:
+- Homebrew renamed `pkg-config` → `pkgconf`; install the latter.
+- The upstream KVS docs still mention `openssl@1.1`, which Homebrew has
+  removed. `openssl@3` works — pass it via `-DOPENSSL_ROOT_DIR` below.
+
+### 3. Build and install kvssink
+
+```sh
+git clone --depth 1 \
+  https://github.com/awslabs/amazon-kinesis-video-streams-producer-sdk-cpp.git \
+  ~/src/kvs-producer-sdk-cpp
+cd ~/src/kvs-producer-sdk-cpp
+mkdir -p build && cd build
+cmake .. \
+  -DBUILD_GSTREAMER_PLUGIN=ON \
+  -DBUILD_DEPENDENCIES=OFF \
+  -DOPENSSL_ROOT_DIR="$(brew --prefix openssl@3)"
+make -j"$(sysctl -n hw.ncpu)"
+```
+
+The compile takes 5-15 minutes depending on the machine. It pulls in
+`libkvspic` and `libkvscproducer` as in-tree dependencies via cmake's
+`ExternalProject_Add`, so the first build is the slow one.
+
+After build, several **wrinkles** need to be handled:
+
+1. The plugin is built as `libgstkvssink.so` even on macOS (upstream
+   CMakeLists doesn't pick `.dylib`). GStreamer's macOS loader only
+   scans for `.dylib`, so it must be renamed.
+2. The plugin links against `@rpath/libKinesisVideoProducer.dylib`,
+   `@rpath/libcproducer.1.dylib`, and `@rpath/libkvsCommonCurl.1.dylib`.
+   Those have to be co-located with the plugin or otherwise resolvable.
+3. `~/Library/GStreamer/1.0/plugins/` is **not** in GStreamer's default
+   scan path on a Homebrew install — only `/opt/homebrew/lib/gstreamer-1.0`
+   is. Without `GST_PLUGIN_PATH` set, anything in `~/Library/GStreamer/`
+   is silently ignored. Putting the plugin in the system dir means IVA
+   finds it regardless of how it's launched (Finder, `open`, launchd).
+
+Combined install:
+
+```sh
+SYS=/opt/homebrew/lib/gstreamer-1.0
+BUILD=~/src/kvs-producer-sdk-cpp/build
+
+# 1. Plugin itself (rename .so -> .dylib).
+cp "$BUILD/libgstkvssink.so" "$SYS/libgstkvssink.dylib"
+
+# 2. Transitive dylibs the plugin's @rpath links against.
+cp "$BUILD/libKinesisVideoProducer.dylib" "$SYS/"
+cp "$BUILD/dependency/libkvscproducer/kvscproducer-src/libcproducer.1.dylib" "$SYS/"
+cp "$BUILD/dependency/libkvscproducer/kvscproducer-src/libcproducer.1.6.1.dylib" "$SYS/"
+cp "$BUILD/dependency/libkvscproducer/kvscproducer-src/libkvsCommonCurl.1.dylib" "$SYS/"
+cp "$BUILD/dependency/libkvscproducer/kvscproducer-src/libkvsCommonCurl.1.6.1.dylib" "$SYS/"
+
+# 3. Re-sign the plugin (codesign invalidates when the binary is moved).
+codesign --force --sign - "$SYS/libgstkvssink.dylib"
+
+# 4. Clear GStreamer's plugin registry cache so it rescans next launch.
+rm -rf ~/.cache/gstreamer-1.0
+```
+
+### 4. Verify
+
+```sh
+gst-inspect-1.0 kvssink | head
+```
+
+Should print:
+
+```
+Factory Details:
+  ...
+Plugin Details:
+  Name                     kvssink
+  Filename                 /opt/homebrew/Cellar/gstreamer/1.28.3/lib/gstreamer-1.0/libgstkvssink.dylib
+```
+
+## Troubleshooting
+
+### `Kein Element »kvssink«` / `No such element or plugin 'kvssink'`
+
+The KVS producer SDK plugin isn't where GStreamer looked. Either you
+haven't built it (see step 3 above), or `libgstkvssink.dylib` and its
+transitive dylibs aren't in `/opt/homebrew/lib/gstreamer-1.0/`. Confirm
+with:
+
+```sh
+gst-inspect-1.0 --gst-plugin-path /path/to/build kvssink
+```
+
+If that works but a bare `gst-inspect-1.0 kvssink` fails, the plugin is
+built correctly but installed in the wrong directory — move it to
+`/opt/homebrew/lib/gstreamer-1.0/` along with the transitive dylibs
+(`libKinesisVideoProducer.dylib`, `libcproducer.*`, `libkvsCommonCurl.*`).
+
+### Noisy `objc[…]: Class … is implemented in both gtk+3 and gtk4` warnings
+
+GStreamer's plugin scanner loads every `.dylib` under
+`/opt/homebrew/lib/gstreamer-1.0`, which on a typical Homebrew install
+includes both `libgstgtk` (gtk3) and `libgstgtk4`. macOS's Obj-C runtime
+prints a warning when the same class symbol shows up in two dylibs in the
+same process. The warnings are harmless — your pipeline does not use
+either sink — but they clutter `agent.log`. Two ways to silence:
+
+```sh
+# Option A: blocklist the gtk sinks at the plugin level
+export GST_PLUGIN_FEATURE_RANK=gtksink:NONE,gtkwaylandsink:NONE,gtk4paintablesink:NONE
+```
+
+```sh
+# Option B: nuke them from the install (re-added by `brew upgrade gst-plugins-good`)
+rm /opt/homebrew/lib/gstreamer-1.0/libgstgtk.dylib \
+   /opt/homebrew/lib/gstreamer-1.0/libgstgtk4.dylib 2>/dev/null
+rm -rf ~/.cache/gstreamer-1.0
+```
+
+### `pygobject initialization failed`
+
+The Python GStreamer plugin (`libgstpython.dylib`) needs PyGObject
+installed in the same Python that GStreamer was linked against. If you
+don't use any Python-implemented GStreamer plugins, just blocklist it:
+
+```sh
+export GST_PLUGIN_FEATURE_RANK=python:NONE
+```
+
+Or delete `/opt/homebrew/lib/gstreamer-1.0/libgstpython.dylib`.
 
 ## Deployment settings (no rebuild required)
 

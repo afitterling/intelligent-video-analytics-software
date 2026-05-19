@@ -60,11 +60,22 @@ final class StreamingAgent: ObservableObject {
     }
 
     private func writeCredsFile(_ creds: ExchangeResponse.Credentials, expiration: String?) throws {
-        // kvssink reads a "credentials file" with this exact shape (see KVS docs).
-        let exp = expiration ?? ISO8601DateFormatter().string(from: Date().addingTimeInterval(3000))
-        let body = """
-        CREDENTIALS \(exp) \(creds.accessKeyId) \(creds.secretAccessKey) \(creds.sessionToken)
-        """
+        // kvssink's FileCredentialProvider expects format:
+        //   CREDENTIALS <accessKey> <expirationISO8601> <secretKey> <sessionToken>
+        // The expiration string must be exactly "YYYY-MM-DDTHH:mm:SSZ" (20 chars,
+        // no fractional seconds). See Util.c:convertTimestampToEpoch in
+        // libkvscproducer — it does a strict strlen + strict positional parse.
+        let isoFmt: ISO8601DateFormatter = {
+            let f = ISO8601DateFormatter()
+            f.formatOptions = [.withInternetDateTime] // no fractional seconds
+            return f
+        }()
+        let expStr: String = {
+            if let s = expiration, s.count == 20 { return s }
+            if let s = expiration, let d = isoFmt.date(from: s) { return isoFmt.string(from: d) }
+            return isoFmt.string(from: Date().addingTimeInterval(3000))
+        }()
+        let body = "CREDENTIALS \(creds.accessKeyId) \(expStr) \(creds.secretAccessKey) \(creds.sessionToken)\n"
         try body.data(using: .utf8)?.write(to: AgentConfig.credsPath, options: .atomic)
     }
 
@@ -90,12 +101,13 @@ final class StreamingAgent: ObservableObject {
             "!", "kvssink",
             "stream-name=\(config.streamName)",
             "aws-region=\(config.region)",
-            "credential-file-path=\(AgentConfig.credsPath.path)",
+            "credential-path=\(AgentConfig.credsPath.path)",
         ]
 
         let p = Process()
         p.executableURL = gst
         p.arguments = pipeline
+        p.environment = gstEnvironment()
 
         let logFh = FileHandle(forWritingAtPath: AgentConfig.logPath.path)
             ?? {
@@ -119,6 +131,29 @@ final class StreamingAgent: ObservableObject {
 
         try p.run()
         process = p
+    }
+
+    private func gstEnvironment() -> [String: String] {
+        // GUI apps launched via `open` don't inherit shell env, so GST_PLUGIN_PATH
+        // and PATH must be set explicitly for kvssink to be discoverable.
+        var env = ProcessInfo.processInfo.environment
+        let home = env["HOME"] ?? NSHomeDirectory()
+        let userPluginDir = "\(home)/Library/GStreamer/1.0/plugins"
+        let brewPluginDir = "/opt/homebrew/lib/gstreamer-1.0"
+        let legacyBrewDir = "/usr/local/lib/gstreamer-1.0"
+        let extraPaths = [userPluginDir, brewPluginDir, legacyBrewDir].joined(separator: ":")
+        if let existing = env["GST_PLUGIN_PATH"], !existing.isEmpty {
+            env["GST_PLUGIN_PATH"] = "\(existing):\(extraPaths)"
+        } else {
+            env["GST_PLUGIN_PATH"] = extraPaths
+        }
+        let pathExtras = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+        if let existing = env["PATH"], !existing.isEmpty {
+            env["PATH"] = "\(existing):\(pathExtras)"
+        } else {
+            env["PATH"] = pathExtras
+        }
+        return env
     }
 
     private func findExecutable(_ name: String) -> URL? {
