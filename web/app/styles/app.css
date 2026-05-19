@@ -52,6 +52,19 @@ a {
   letter-spacing: 0;
 }
 
+.user-avatar {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid rgba(31, 122, 140, 0.22);
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  color: #176b7a;
+  font-size: 0.8rem;
+  font-weight: 800;
+  background: #e8f7fa;
+}
+
 .main-container {
   width: min(1180px, calc(100% - 2rem));
   margin: 0 auto;

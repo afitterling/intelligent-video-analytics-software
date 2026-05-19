@@ -17,5 +17,26 @@ const silenceWellKnownProbes = {
 };
 
 export default defineConfig({
-  plugins: [silenceWellKnownProbes, remix(), tsconfigPaths()],
+  plugins: [
+    silenceWellKnownProbes,
+    remix({
+      ignoredRouteFiles: ["**/*"],
+      routes(defineRoutes) {
+        return defineRoutes((route) => {
+          route("/", "routes/_index.tsx", { index: true });
+          route("devices", "routes/devices._index.tsx");
+          route("devices/new", "routes/devices.new.tsx");
+          route("devices/:id", "routes/devices.$id.tsx");
+          route("devices/:id/viewer", "routes/devices.$id.viewer.tsx");
+          route("forgot", "routes/forgot.tsx");
+          route("login", "routes/login.tsx");
+          route("logout", "routes/logout.tsx");
+          route("reset", "routes/reset.tsx");
+          route("rules", "routes/rules.tsx");
+          route("signup", "routes/signup.tsx");
+        });
+      },
+    }),
+    tsconfigPaths(),
+  ],
 });

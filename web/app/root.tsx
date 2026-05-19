@@ -26,6 +26,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function App() {
   const { email } = useLoaderData<typeof loader>();
+  const avatarLabel = email?.trim().slice(0, 1).toUpperCase() ?? "";
   return (
     <html lang="en">
       <head>
@@ -47,7 +48,9 @@ export default function App() {
             <>
               <Link to="/devices" className="nav-link">Devices</Link>
               <Link to="/rules" className="nav-link">Rules</Link>
-              <span className="d-none d-md-inline small muted px-2">{email}</span>
+              <span className="user-avatar" title={email} aria-label={`Signed in as ${email}`}>
+                {avatarLabel}
+              </span>
               <form action="/logout" method="post" className="m-0">
                 <button type="submit" className="btn btn-sm btn-outline-secondary">Sign out</button>
               </form>

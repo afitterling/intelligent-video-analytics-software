@@ -1,9 +1,11 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
+import { redirect } from "@remix-run/node";
 import { useLoaderData, Link } from "@remix-run/react";
-import { readSession } from "~/lib/session.server.js";
+import { requireSession } from "~/lib/session.server.js";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const s = await readSession(request);
+  const s = await requireSession(request).catch(() => null);
+  if (s) throw redirect("/devices");
   return { authed: !!s };
 };
 

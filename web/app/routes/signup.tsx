@@ -1,6 +1,14 @@
-import type { ActionFunctionArgs } from "@remix-run/node";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
+import { redirect } from "@remix-run/node";
 import { Form, Link, useActionData } from "@remix-run/react";
 import { api, ApiError } from "~/lib/api.server.js";
+import { requireSession } from "~/lib/session.server.js";
+
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const s = await requireSession(request).catch(() => null);
+  if (s) throw redirect("/devices");
+  return null;
+};
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const form = await request.formData();

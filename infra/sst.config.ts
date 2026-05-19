@@ -113,6 +113,44 @@ export default $config({
       collectionId: `${$app.name}-${$app.stage}-faces`,
     });
 
+    // Role that Lambdas assume to mint short-lived KVS-producer credentials
+    // for an agent device. We can't use sts:GetFederationToken from a Lambda
+    // (AWS rejects it when the caller has session credentials), so the flow
+    // is: Lambda execution role -> sts:AssumeRole -> this role, with an
+    // inline session policy scoping permissions down to a single stream ARN.
+    const accountId = aws.getCallerIdentityOutput({}).accountId;
+    const kvsProducerRole = new aws.iam.Role("KvsProducerRole", {
+      assumeRolePolicy: accountId.apply((id) =>
+        JSON.stringify({
+          Version: "2012-10-17",
+          Statement: [
+            {
+              Effect: "Allow",
+              Principal: { AWS: `arn:aws:iam::${id}:root` },
+              Action: "sts:AssumeRole",
+            },
+          ],
+        }),
+      ),
+    });
+    new aws.iam.RolePolicy("KvsProducerRolePolicy", {
+      role: kvsProducerRole.id,
+      policy: JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Effect: "Allow",
+            Action: [
+              "kinesisvideo:DescribeStream",
+              "kinesisvideo:GetDataEndpoint",
+              "kinesisvideo:PutMedia",
+            ],
+            Resource: "*",
+          },
+        ],
+      }),
+    });
+
     const senderEmail = "info@sp33c.tech";
     new aws.sesv2.EmailIdentity("AlertSender", { emailIdentity: senderEmail });
 
@@ -140,6 +178,7 @@ export default $config({
       ALERT_COOLDOWN_SECONDS: "3600",
       DETECTIONS_RETENTION_DAYS: "90",
       KVS_STREAM_PREFIX: `${$app.name}-${$app.stage}-`,
+      KVS_PRODUCER_ROLE_ARN: kvsProducerRole.arn,
     };
 
     // Permissions that any function may need to manage streams it owns.
@@ -199,7 +238,7 @@ export default $config({
       environment: commonEnv,
       permissions: [
         kvsAdminPermission,
-        { actions: ["sts:GetFederationToken"], resources: ["*"] },
+        { actions: ["sts:AssumeRole"], resources: [kvsProducerRole.arn] },
         { actions: ["ses:SendEmail", "ses:SendRawEmail"], resources: ["*"] },
       ],
       ...extra,
@@ -245,12 +284,12 @@ export default $config({
     });
 
     return {
-      api: api.url,
-      userPoolId: userPool.id,
-      userPoolClientId: userPoolClient.id,
-      region: aws.getRegionOutput().name,
-      bucket: mediaBucket.name,
-      faceCollection: faceCollection.collectionId,
+      IVA_API_URL: api.url,
+      IVA_REGION: aws.getRegionOutput().name,
+      IVA_USER_POOL_ID: userPool.id,
+      IVA_USER_POOL_CLIENT_ID: userPoolClient.id,
+      IVA_MEDIA_BUCKET: mediaBucket.name,
+      IVA_FACE_COLLECTION: faceCollection.collectionId,
     };
   },
 });

@@ -9,7 +9,7 @@ import {
   KinesisVideoArchivedMediaClient,
   GetHLSStreamingSessionURLCommand,
 } from "@aws-sdk/client-kinesis-video-archived-media";
-import { STSClient, GetFederationTokenCommand } from "@aws-sdk/client-sts";
+import { STSClient, AssumeRoleCommand } from "@aws-sdk/client-sts";
 
 const kvs = new KinesisVideoClient({});
 const sts = new STSClient({});
@@ -75,9 +75,13 @@ export const issueProducerCredentials = async (
       },
     ],
   });
+  // Lambdas run with session credentials, which AWS rejects for
+  // GetFederationToken — assume a pre-provisioned role and pass the same
+  // scope-down policy as a session policy instead.
   const r = await sts.send(
-    new GetFederationTokenCommand({
-      Name: sessionName.slice(0, 32).replace(/[^A-Za-z0-9+=,.@-]/g, "_"),
+    new AssumeRoleCommand({
+      RoleArn: process.env.KVS_PRODUCER_ROLE_ARN!,
+      RoleSessionName: sessionName.slice(0, 64).replace(/[^A-Za-z0-9+=,.@-]/g, "_"),
       DurationSeconds: 3600,
       Policy: policy,
     }),
